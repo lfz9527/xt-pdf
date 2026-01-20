@@ -61,7 +61,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url }) => {
     // 清理函数
     return () => {
       if (viewerRef.current) {
-        viewerRef.current.destroy();
+        viewerRef.current?.destroy?.();
         viewerRef.current = null;
       }
     };
