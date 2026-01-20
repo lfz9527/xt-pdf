@@ -1,6 +1,6 @@
-import { Viewer } from './xt-pdf'
+import { XtPDFViewer } from './xt-pdf'
 
 function App() {
-  return <Viewer url='/1708.08021-论文1.pdf' />
+  return <XtPDFViewer url='/1708.08021-论文1.pdf' />
 }
 export default App

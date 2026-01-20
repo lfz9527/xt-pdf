@@ -1,3 +1,3 @@
-export { default as Viewer } from './Viewer'
+export { default as XtPDFViewer } from './viewer'
 
-export * from './Viewer'
+export * from './viewer'
