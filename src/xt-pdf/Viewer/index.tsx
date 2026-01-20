@@ -1,67 +1,72 @@
-import { useEffect } from 'react'
+import { ViewContext } from "@/xt-pdf/context/viewContext"
+import useLoadPDFViewer, { type UseLoadPDFViewerOptions } from '@/xt-pdf/hooks/useLoadPDFViewer'
 
-import { usePdfViewerContext } from '@/xt-pdf/context/PdfViewProvider'
-import PdfViewProvider from './PdfViewProvider'
+import { type PDFDocumentAction } from '@/xt-pdf/types'
 
-import { type UseViewerOptions, type UseViewerAction } from '@/xt-pdf/hooks/usePdfViewer'
-import { type PdfBaseProps, type PDFDocumentAction } from '@/xt-pdf/types'
+import DocumentLoad from './DocumentLoad'
 
-type ViewerProps = PdfBaseProps & PDFDocumentAction & UseViewerOptions & UseViewerAction & {
-  children?: React.ReactNode | React.ReactNode[]
+import 'pdfjs-dist/web/pdf_viewer.css'
+import './index.css'
+
+export type ViewerProps = UseLoadPDFViewerOptions & PDFDocumentAction & {
+  className?: string
+  style?: React.CSSProperties
+  children?: React.ReactNode | React.ReactNode[],
+
+  renderLoading?: (progress: number) => React.ReactNode
+  renderError?: (error: Error | null) => React.ReactNode
+  renderProgress?: (progress: number) => React.ReactNode
 }
-const Viewer = (props: ViewerProps) => {
+function Viewer({
+  className = '',
+  style,
+  children,
+
+  onDocumentLoaded,
+  onEventBusReady,
+
+  renderLoading,
+  renderError,
+  renderProgress,
+
+  ...props
+}: ViewerProps) {
+
   const {
-    children,
-    layoutClassName,
-    layoutStyle,
-    url,
-    enableRange,
+    containerRef,
+    loading,
+    progress,
+    pdfDocument,
+    pdfViewer,
+    eventBus,
+    loadError
+  } = useLoadPDFViewer({
+    ...props
+  })
 
-    onDocumentLoaded,
-    onEventBusReady,
-
-    ...rest
-  } = props
+  const isReady = !!(pdfViewer && eventBus && containerRef.current && !loading)
 
   return (
-    <PdfViewProvider
-      className={layoutClassName}
-      style={layoutStyle}
-      url={url}
-      enableRange={enableRange}
-      {...rest}
-    >
-      <Index onDocumentLoaded={onDocumentLoaded} onEventBusReady={onEventBusReady} />
-      {children}
-    </PdfViewProvider>
-  )
+    <ViewContext.Provider value={{ pdfDocument, pdfViewer, eventBus, isReady }} >
+      <div
+        style={style}
+        id='xt-pdf'
+      >
+        {renderProgress?.(progress)}
+        {loading ? renderLoading?.(progress) : ''}
+        {renderError?.(loadError)}
+        <div ref={containerRef} className={`xt-pdf_viewer ${className}`}>
+          <div className='pdfViewer'></div>
+        </div>
+        <DocumentLoad
+          onDocumentLoaded={onDocumentLoaded}
+          onEventBusReady={onEventBusReady}
+        />
+        {children}
+      </div>
+    </ ViewContext.Provider>
+  );
 }
 
-export default Viewer
+export default Viewer;
 
-
-function Index({ onDocumentLoaded, onEventBusReady }: PDFDocumentAction) {
-  const { isReady, pdfViewer, eventBus } = usePdfViewerContext()
-
-  useEffect(() => {
-    if (!isReady || !pdfViewer || !eventBus) return
-    onEventBusReady?.(eventBus)
-
-    const handleDocumentLoaded = async () => {
-      onDocumentLoaded?.(pdfViewer)
-    }
-
-    if (pdfViewer.pdfDocument) {
-      handleDocumentLoaded()
-    } else {
-      eventBus.on('documentloaded', handleDocumentLoaded)
-    }
-
-    return () => {
-      eventBus.off('documentloaded', handleDocumentLoaded)
-    }
-  }, [isReady, pdfViewer, eventBus])
-
-  useEffect(() => { }, [])
-  return <></>
-}

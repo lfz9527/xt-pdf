@@ -1,35 +1,36 @@
+import { useEffect, useRef, useState, useCallback } from 'react'
+import * as pdfjsLib from 'pdfjs-dist'
 import {
   EventBus,
   PDFLinkService,
   PDFViewer,
 } from 'pdfjs-dist/web/pdf_viewer.mjs'
 
-import {
-  AnnotationEditorType,
-  AnnotationMode,
-  getDocument,
-  PDFDataRangeTransport,
-  type PDFDocumentLoadingTask,
-  type PDFDocumentProxy,
-} from 'pdfjs-dist'
 
-import { useRef, useCallback, useState, useEffect } from 'react'
-
-import { type PDFViewerProps } from '@/xt-pdf/types'
-import { LinkTarget, TextLayerMode } from '@/xt-pdf/const/viewer'
-
+import { TextLayerMode, AnnotationMode, LinkTarget } from '@/xt-pdf/const/viewer'
 
 import { isRangeFailure } from '@/xt-pdf/lib/utils'
+import { isDev } from '@/xt-pdf/lib/env'
 
-export type UseViewerOptions = PDFViewerProps & {
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.mjs',
+  import.meta.url
+).toString();
+
+
+export type UseLoadPDFViewerOptions = {
   /** PDF 文件 URL */
   url: string | URL
   /** 是否启用Rang加载， 默认 auto */
   enableRange?: boolean | 'auto'
-}
-export type UseViewerAction = {
+  // 文本层模式
+  textLayerMode?: number
+  // 注释层模式
+  annotationMode?: number
+  // 外部链接目标
+  externalLinkTarget?: number
   /** PDF 加载成功回调 */
-  onLoadSuccess?: (pdfDocument: PDFDocumentProxy) => void
+  onLoadSuccess?: (pdfDocument: pdfjsLib.PDFDocumentProxy) => void
   /** PDF 加载失败回调 */
   onLoadError?: (error: Error) => void
   /** PDF 加载结束（包括成功或失败） */
@@ -37,58 +38,44 @@ export type UseViewerAction = {
   /** Viewer 初始化回调（暴露 PDFViewer 实例） */
   onViewerInit?: (viewer: PDFViewer) => void
 }
-type UsePdfViewerOptions = UseViewerOptions & UseViewerAction
-export default function usePdfViewer(options: UsePdfViewerOptions) {
-
+const useLoadPDFViewer = (options: UseLoadPDFViewerOptions) => {
   const {
     url,
     enableRange = 'auto',
+    textLayerMode = TextLayerMode.ENABLE_PERMISSIONS,
+    annotationMode = AnnotationMode.ENABLE,
+    externalLinkTarget = LinkTarget.BLANK,
     onLoadSuccess,
     onLoadError,
     onLoadEnd,
     onViewerInit,
-    textLayerMode = TextLayerMode.ENABLE,
-    annotationMode = AnnotationMode.ENABLE,
-    externalLinkTarget = LinkTarget.BLANK,
   } = options
 
   const containerRef = useRef<HTMLDivElement>(null)
-
-  const stableOnLoadSuccess = useCallback(
-    (pdfDocument: PDFDocumentProxy) => onLoadSuccess?.(pdfDocument),
-    [onLoadSuccess]
-  )
-  const stableOnLoadError = useCallback(
-    (error: Error) => onLoadError?.(error),
-    [onLoadError]
-  )
-  const stableOnLoadEnd = useCallback(() => onLoadEnd?.(), [onLoadEnd])
-  const stableOnViewerInit = useCallback(
-    (viewer: PDFViewer) => onViewerInit?.(viewer),
-    [onViewerInit]
-  )
-
 
   const pdfViewerRef = useRef<PDFViewer | null>(null)
   const linkServiceRef = useRef<PDFLinkService | null>(null)
   const eventBusRef = useRef<EventBus | null>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
-  const loadingTaskRef = useRef<PDFDocumentLoadingTask | null>(null)
+  const loadingTaskRef = useRef<pdfjsLib.PDFDocumentLoadingTask | null>(null)
 
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState(0)
-  const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null)
-  const [metadata, setMetadata] = useState<Global.anyObj | null>(null)
+  const [pdfDocument, setPdfDocument] = useState<pdfjsLib.PDFDocumentProxy | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [metadata, setMetadata] = useState<Record<string, any> | null>(null)
   const [loadError, setLoadError] = useState<Error | null>(null)
 
+  const devRenderRef = useRef(false)
 
   // 创建pdf 视图
-  const createPdfViewer = useCallback(() => {
+  const createViewer = () => {
     if (cleanupRef.current) {
       cleanupRef.current()
       cleanupRef.current = null
     }
     if (!containerRef.current) throw new Error('PDF container not ready')
+
     // 事件
     const bus = new EventBus()
     eventBusRef.current = bus
@@ -98,17 +85,17 @@ export default function usePdfViewer(options: UsePdfViewerOptions) {
       eventBus: bus,
       externalLinkTarget,
     })
-
     // 视图
     const viewer = new PDFViewer({
       container: containerRef.current,
       eventBus: bus,
       textLayerMode,
       annotationMode,
-      annotationEditorMode: AnnotationEditorType.DISABLE,
+      annotationEditorMode: AnnotationMode.DISABLE,
       linkService,
       removePageBorders: true,
     })
+
     linkService.setViewer(viewer)
     linkServiceRef.current = linkService
     pdfViewerRef.current = viewer
@@ -121,25 +108,17 @@ export default function usePdfViewer(options: UsePdfViewerOptions) {
       if (linkServiceRef.current) linkServiceRef.current = null
       if (eventBusRef.current) eventBusRef.current = null
     }
-
-    stableOnViewerInit(viewer)
+    onViewerInit?.(viewer)
     return { bus, linkService, viewer }
-
-  }, [
-    containerRef,
-    textLayerMode,
-    annotationMode,
-    externalLinkTarget,
-    stableOnViewerInit,
-  ])
+  }
 
   // 创建转换器
-  const createTransport = useCallback(async (url: string) => {
+  const createTransport = async (url: string) => {
     const headResp = await fetch(url, { method: 'HEAD' })
     const length = Number(headResp.headers.get('Content-Length'))
     if (isNaN(length))
       throw new Error('Cannot get PDF length for range loading')
-    class MyPDFDataRangeTransport extends PDFDataRangeTransport {
+    class MyPDFDataRangeTransport extends pdfjsLib.PDFDataRangeTransport {
       async requestDataRange(begin: number, end: number) {
         const resp = await fetch(url, {
           headers: { Range: `bytes=${begin}-${end - 1}` },
@@ -150,16 +129,16 @@ export default function usePdfViewer(options: UsePdfViewerOptions) {
     }
 
     return new MyPDFDataRangeTransport(length, null)
-  }, [])
+  }
 
   // 构建加载任务
   const createLoadingTask = useCallback(
     async (useRange: boolean) => {
       if (useRange) {
         const transport = await createTransport(url as string)
-        return getDocument({ range: transport })
+        return pdfjsLib.getDocument({ range: transport })
       }
-      return getDocument({
+      return pdfjsLib.getDocument({
         url,
         cMapUrl: '/cmaps/',
         cMapPacked: true,
@@ -168,20 +147,18 @@ export default function usePdfViewer(options: UsePdfViewerOptions) {
     [url, createTransport]
   )
 
-  // 加载器
-  const load = async () => {
+  const handleLoad = async () => {
     if (!url) return
     setLoading(true)
     setProgress(0)
     setLoadError(null)
     setPdfDocument(null)
 
-    const { linkService, viewer } = createPdfViewer()
-
+    const { linkService, viewer } = createViewer()
     const shouldTryRange = enableRange === true || enableRange === 'auto'
     let triedRange = false
     try {
-      let loadingTask: PDFDocumentLoadingTask
+      let loadingTask: pdfjsLib.PDFDocumentLoadingTask
       if (shouldTryRange) {
         triedRange = true
         loadingTask = await createLoadingTask(true)
@@ -204,7 +181,7 @@ export default function usePdfViewer(options: UsePdfViewerOptions) {
 
       const docMetadata = await pdf.getMetadata()
       setMetadata(docMetadata)
-      stableOnLoadSuccess?.(pdf)
+      onLoadSuccess?.(pdf)
     } catch (err) {
       // auto 模式下，Range 失败 → fallback
       if (enableRange === 'auto' && triedRange && isRangeFailure(err)) {
@@ -238,27 +215,33 @@ export default function usePdfViewer(options: UsePdfViewerOptions) {
 
           const docMetadata = await pdf.getMetadata()
           setMetadata(docMetadata)
-          stableOnLoadSuccess?.(pdf)
+          onLoadSuccess?.(pdf)
           return
         } catch (fallbackErr) {
           setLoadError(fallbackErr as Error)
-          stableOnLoadError?.(fallbackErr as Error)
+          onLoadError?.(fallbackErr as Error)
           return
         }
       }
 
       setLoadError(err as Error)
-      stableOnLoadError?.(err as Error)
+      onLoadError?.(err as Error)
     } finally {
       setLoading(false)
-      stableOnLoadEnd?.()
+      onLoadEnd?.()
     }
   }
 
   useEffect(() => {
-    load()
+    // 处理严格模式时渲染了两次
+    if (isDev && devRenderRef.current) return
+    devRenderRef.current = true
 
+    handleLoad()
     return () => {
+      // 处理严格模式时渲染了两次
+      if (isDev && devRenderRef.current) return
+
       if (cleanupRef.current) {
         cleanupRef.current()
         cleanupRef.current = null
@@ -269,8 +252,6 @@ export default function usePdfViewer(options: UsePdfViewerOptions) {
       }
     }
   }, [])
-
-
 
   const obj = {
     /** PDF 渲染容器的 DOM 引用 */
@@ -293,3 +274,5 @@ export default function usePdfViewer(options: UsePdfViewerOptions) {
 
   return obj
 }
+
+export default useLoadPDFViewer

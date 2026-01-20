@@ -1,12 +1,13 @@
-.xt-pdf {
+#xt-pdf {
   width: 100%;
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
   position: relative;
 }
-.xt-pdf_viewer {
+#xt-pdf .xt-pdf_viewer {
   position: absolute;
   width: 100%;
   height: 100%;

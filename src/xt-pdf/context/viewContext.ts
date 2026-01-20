@@ -1,9 +1,9 @@
 import { createContext, useContext } from 'react'
+import { type PDFDocumentProxy } from 'pdfjs-dist'
 import {
   type EventBus,
   type PDFViewer,
 } from 'pdfjs-dist/web/pdf_viewer.mjs'
-import { type PDFDocumentProxy } from 'pdfjs-dist'
 
 
 /**
@@ -21,14 +21,14 @@ export interface PdfContextValue {
 }
 
 // 创建 Context
-export const PdfViewProvider = createContext<PdfContextValue | null>(null)
+export const ViewContext = createContext<PdfContextValue | null>(null)
 
 
-export const usePdfViewerContext = (): PdfContextValue => {
-  const context = useContext(PdfViewProvider)
+export const useViewerContext = (): PdfContextValue => {
+  const context = useContext(ViewContext)
   if (!context) {
     throw new Error(
-      'usePdfContext must be used within a PdfContextProvider'
+      'useViewerContext must be used within a ViewContext'
     )
   }
   return context
