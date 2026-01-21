@@ -1,3 +1,8 @@
+import { clsx, type ClassValue } from 'clsx'
+
+// 类名合并
+export const cn = (...inputs: ClassValue[]) => clsx(inputs)
+
 /**
  * 检查错误是否为 Range 加载失败
  * @param error 错误对象

@@ -6,17 +6,21 @@ import {
   PDFViewer,
 } from 'pdfjs-dist/web/pdf_viewer.mjs'
 
-
-import { TextLayerMode, AnnotationMode, LinkTarget } from '@/xt-pdf/const/viewer'
+import {
+  TextLayerMode,
+  AnnotationMode,
+  LinkTarget,
+} from '@/xt-pdf/const/viewer'
 
 import { isRangeFailure } from '@/xt-pdf/lib/utils'
 import { isDev } from '@/xt-pdf/lib/env'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
-  import.meta.url
-).toString();
+  import.meta.url,
+).toString()
 
+type ProgressFunc = (data: { loaded: number; total: number }) => void
 
 export type UseLoadPDFViewerOptions = {
   /** PDF 文件 URL */
@@ -61,7 +65,8 @@ const useLoadPDFViewer = (options: UseLoadPDFViewerOptions) => {
 
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState(0)
-  const [pdfDocument, setPdfDocument] = useState<pdfjsLib.PDFDocumentProxy | null>(null)
+  const [pdfDocument, setPdfDocument] =
+    useState<pdfjsLib.PDFDocumentProxy | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [metadata, setMetadata] = useState<Record<string, any> | null>(null)
   const [loadError, setLoadError] = useState<Error | null>(null)
@@ -144,7 +149,7 @@ const useLoadPDFViewer = (options: UseLoadPDFViewerOptions) => {
         cMapPacked: true,
       })
     },
-    [url, createTransport]
+    [url, createTransport],
   )
 
   const handleLoad = async () => {
@@ -165,10 +170,7 @@ const useLoadPDFViewer = (options: UseLoadPDFViewerOptions) => {
       } else {
         loadingTask = await createLoadingTask(false)
       }
-      const onProgress = ({ loaded, total }: {
-        loaded: number
-        total: number
-      }) => {
+      const onProgress: ProgressFunc = ({ loaded, total }) => {
         if (total > 0) {
           setProgress(Math.round((loaded / total) * 100))
         }

@@ -1,0 +1,17 @@
+
+# 忽略全部
+/*
+
+
+# 不需要忽略的文件
+!/src
+!index.html
+!package.json
+!commitlint.config.js
+!tsconfig.json
+!tsconfig.node.json
+!tsconfig.app.json
+!vite.config.ts
+!.prettierrc
+!.cz-config.cjs
+!eslint.config.js

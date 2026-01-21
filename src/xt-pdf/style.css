@@ -1,0 +1,80 @@
+#xt-pdf {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  position: relative;
+}
+#xt-pdf .xt-pdf_viewer {
+  position: absolute;
+  background: #d4d4d7;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+#xt-pdf .xt-pdf_viewer .viewer_error-layout {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  background-color: white;
+}
+#xt-pdf .viewer_error-layout .viewer_error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
+#xt-pdf .viewer_error-layout .viewer_error-content .viewer_error-tip {
+  font-size: 18px;
+}
+#xt-pdf .viewer_error-layout .viewer_error-content .viewer_error-message {
+  color: #e7000b;
+  text-align: center;
+  word-break: break-word;
+}
+
+#xt-pdf .viewer_loading-layout {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  background-color: white;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+}
+#xt-pdf .viewer_loading-layout .viewer_loading-message {
+  font-size: 14px;
+}
+#xt-pdf .viewer_progress-layout {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  z-index: 110;
+  background-color: white;
+}
+#xt-pdf .viewer_progress-layout .viewer_progress-rail {
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 1px;
+  width: 100%;
+  height: 4px;
+  transform: translateZ(0);
+}
+#xt-pdf .viewer_progress-layout .viewer_progress-rail .viewer_progress-track {
+  background-color: #1677ff;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.66s cubic-bezier(0.65, 0, 0.35, 1);
+}
