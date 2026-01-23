@@ -1,17 +1,29 @@
-#xt-pdf {
+.xt-pdf_wrapper {
   width: 100%;
-  height: 100vh;
+  height: 100%;
+  position: relative;
+}
+
+#xt-pdf {
+  /* width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
   position: relative;
+ */
+  position: absolute;
+  inset: 0;
+  min-width: 800px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  background: #d4d4d7;
 }
 #xt-pdf .xt-pdf_viewer {
   position: absolute;
-  background: #d4d4d7;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   overflow: auto;
 }
 
@@ -20,13 +32,15 @@
   inset: 0;
   z-index: 100;
   background-color: white;
+  overflow: hidden;
 }
 #xt-pdf .viewer_error-layout .viewer_error-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
+  height: 100%;
+  width: 100%;
   gap: 8px;
   padding: 16px;
 }

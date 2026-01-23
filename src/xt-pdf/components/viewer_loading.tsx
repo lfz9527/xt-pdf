@@ -5,7 +5,7 @@ type Props = {
   loading: boolean
   progress: number
 }
-export default function ViewerLoading({ loading, progress = 0 }: Props) {
+export function ViewerLoading({ loading, progress = 0 }: Props) {
   const showLoading = useDelayedLoading(loading, 500)
 
   if (!showLoading) return null
@@ -18,7 +18,7 @@ export default function ViewerLoading({ loading, progress = 0 }: Props) {
 }
 
 function useDelayedLoading(loading: boolean, delay: number) {
-  const [visible, setVisible] = useState(false)
+  const [visible, setVisible] = useState(true)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 type Props = {
   progress: number
 }
-export default function ViewerProgress({ progress = 100 }: Props) {
+export function ViewerProgress({ progress = 100 }: Props) {
   const { visible, value } = useTransientProgress(progress, 1500)
   const x = 100 - value
 

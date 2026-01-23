@@ -5,7 +5,7 @@ export interface ErrorDisplayProps {
   error: Error
 }
 
-const ViewerError: React.FC<ErrorDisplayProps> = ({ error }) => {
+export const ViewerError: React.FC<ErrorDisplayProps> = ({ error }) => {
   return (
     <div className="viewer_error-layout">
       <div className="viewer_error-content">
@@ -18,5 +18,3 @@ const ViewerError: React.FC<ErrorDisplayProps> = ({ error }) => {
     </div>
   )
 }
-
-export default ViewerError
